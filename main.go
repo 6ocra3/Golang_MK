@@ -31,7 +31,7 @@ func main() {
 func stemmString(input string) []string {
 	// Удаление знаков препинания
 	input = strings.Map(func(r rune) rune {
-		if unicode.IsPunct(r) {
+		if unicode.IsPunct(r) && r != '\'' && r != '-' {
 			return -1
 		}
 		return r
