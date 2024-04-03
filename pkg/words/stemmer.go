@@ -1,7 +1,6 @@
-package main
+package words
 
 import (
-	"flag"
 	"fmt"
 	"slices"
 	"strings"
@@ -11,24 +10,8 @@ import (
 	"github.com/kljensen/snowball"
 )
 
-func main() {
-	var input string
-	flag.StringVar(&input, "s", "", "Флаг `-s` используется для ввода строки")
-	flag.Parse()
-
-	if input == "" {
-		fmt.Println(`На вход не подана строка. Используйте -s и "" `)
-		return
-	}
-
-	stemmedInput := stemmString(input)
-
-	result := strings.Join(stemmedInput, " ")
-	fmt.Println(result)
-}
-
 // Функция для стемминга
-func stemmString(input string) []string {
+func StemmString(input string) ([]string, error) {
 	// Удаление знаков препинания
 	input = strings.Map(func(r rune) rune {
 		if unicode.IsPunct(r) && r != '\'' && r != '-' {
@@ -40,7 +23,7 @@ func stemmString(input string) []string {
 	// Кусок кода, который обрабатывает строку, выделяет слова и характеризует каждое слово
 	doc, err := prose.NewDocument(input)
 	if err != nil {
-		fmt.Println("Can't preprocess input for prose:", err)
+		return nil, err
 	}
 
 	appended := make(map[string]bool)
@@ -64,7 +47,7 @@ func stemmString(input string) []string {
 		}
 	}
 
-	return filtered
+	return filtered, nil
 }
 
 func checkWord(tok prose.Token) bool {

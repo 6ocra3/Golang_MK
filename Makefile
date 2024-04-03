@@ -3,7 +3,7 @@ BINARY_NAME=myapp
 all: build
 
 build:
-	go build -o $(BINARY_NAME) main.go
+	go build -o $(BINARY_NAME) cmd/xkcd/main.go
 
 clean:
 	go clean
