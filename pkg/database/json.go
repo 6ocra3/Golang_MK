@@ -11,6 +11,9 @@ import (
 var configData *config.Config
 
 func Init(config *config.Config) error {
+
+	// Инициализация конфига. Создание файла БД, если его нет
+
 	configData = config
 
 	file, err := os.OpenFile(configData.DBFile, os.O_CREATE, 0666)
@@ -26,16 +29,21 @@ func Init(config *config.Config) error {
 }
 
 func AddComics(comics map[int]*xkcd.Comic) error {
+
+	// Считывание имеющихся комиксов.
 	existingComics, err := GetComics()
 
 	if err != nil {
 		return err
 	}
 
+	// Добавление новых комиксов к имеющимся
+
 	for id, comic := range comics {
 		existingComics[id] = comic
 	}
 
+	// Запись в БД
 	updatedData, err := json.MarshalIndent(existingComics, "", " ")
 	if err != nil {
 		return err
@@ -51,6 +59,8 @@ func AddComics(comics map[int]*xkcd.Comic) error {
 
 func GetComics() (map[int]*xkcd.Comic, error) {
 
+	// Считывание всех комиксов из БД
+
 	var existingComics map[int]*xkcd.Comic
 
 	data, err := os.ReadFile(configData.DBFile)
@@ -59,6 +69,7 @@ func GetComics() (map[int]*xkcd.Comic, error) {
 		return nil, err
 	}
 
+	// Если комиксов нет, то вернуть пустой map
 	if len(data) == 0 {
 		existingComics = make(map[int]*xkcd.Comic)
 	} else {

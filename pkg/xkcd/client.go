@@ -36,6 +36,7 @@ func DownloadComics(start int, end int) (map[int]*Comic, error) {
 	comicsChan := make(chan *Comic, end-start+1)
 	errChan := make(chan error, end-start+1)
 
+	// Считывание комиксов по айти с помощью горутин
 	for i := start; i <= end; i++ {
 		go func(id int) {
 			comic, err := DownloadComic(id)
@@ -48,6 +49,7 @@ func DownloadComics(start int, end int) (map[int]*Comic, error) {
 		}(i)
 	}
 
+	// Записывание каждого комикса в map
 	for i := start; i <= end; i++ {
 		select {
 		case comic := <-comicsChan:
@@ -65,6 +67,8 @@ func DownloadComics(start int, end int) (map[int]*Comic, error) {
 
 func DownloadComic(id int) (*Comic, error) {
 
+	// Считывание одного комикса
+
 	url := fmt.Sprintf("%s/%d/info.0.json", configData.SourceURL, id)
 	resp, err := client.Get(url)
 
@@ -79,6 +83,8 @@ func DownloadComic(id int) (*Comic, error) {
 	var comic RawComic
 
 	json.Unmarshal(body, &comic)
+
+	// Преобразование комикса в нужный формат. Стеминг, фильтр полей
 
 	description := comic.Transcript + comic.Alt
 

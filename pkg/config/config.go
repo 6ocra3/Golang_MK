@@ -12,6 +12,7 @@ type Config struct {
 }
 
 func ReadConfig(filename string) (*Config, error) {
+	// Считывание конфига из config.yaml
 	file, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, err
