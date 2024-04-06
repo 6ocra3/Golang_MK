@@ -7,6 +7,7 @@ import (
 	"makar/stemmer/pkg/config"
 	"makar/stemmer/pkg/words"
 	"net/http"
+	"time"
 )
 
 type RawComic struct {
@@ -20,7 +21,7 @@ type Comic struct {
 	Keywords []string
 }
 
-var client = http.Client{}
+var client = http.Client{Timeout: 30 * time.Second}
 var configData *config.Config
 
 func Init(config *config.Config) error {
@@ -38,15 +39,11 @@ func DownloadComics(start int, end int) (map[int]*Comic, error) {
 
 	// Считывание комиксов по айти с помощью горутин
 	for i := start; i <= end; i++ {
-		go func(id int) {
-			comic, err := DownloadComic(id)
-			if err != nil {
-				errChan <- err
-				return
-			}
-			comicsChan <- comic
-			fmt.Printf("%d ", id)
-		}(i)
+		comic, err := DownloadComic(i)
+		if err != nil {
+			return nil, err
+		}
+		comics[i] = comic
 	}
 
 	// Записывание каждого комикса в map

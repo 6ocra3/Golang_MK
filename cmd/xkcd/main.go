@@ -7,6 +7,7 @@ import (
 	"makar/stemmer/pkg/database"
 	"makar/stemmer/pkg/requests"
 	"makar/stemmer/pkg/xkcd"
+	"math"
 )
 
 const base_batch_size = 50
@@ -15,7 +16,7 @@ func main() {
 
 	// Считывание флагов
 	printFlag := flag.Bool("o", false, "Флаг для вывода скаченных комиксов")
-	limitFlag := flag.Int("n", -1, "Флаг для установки лимита показываемых комиксов")
+	limitFlag := flag.Int("n", math.MaxInt, "Флаг для установки лимита показываемых комиксов")
 
 	flag.Parse()
 
@@ -30,9 +31,6 @@ func main() {
 	initAll(config)
 	if *printFlag {
 		// Сценарий ./myapp -o
-		printScript(-1)
-	} else if *limitFlag != -1 {
-		// Сценарий ./myapp -n {num}
 		printScript(*limitFlag)
 	} else {
 		// Сценарий ./myapp

@@ -1,4 +1,4 @@
-BINARY_NAME=myapp
+BINARY_NAME=xkcd
 
 all: build
 

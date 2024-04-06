@@ -33,13 +33,12 @@ func DBPrintComics(limit int) error {
 
 	// Формирование списка комиксов, с id меньше limit
 	limitedComics := make(map[int]*xkcd.Comic)
-
-	if limit == -1 {
-		limitedComics = comics
-	} else {
-		for i := 1; i <= limit; i++ {
-			limitedComics[i] = comics[i]
+	for i := 1; i <= limit; i++ {
+		_, ok := comics[i]
+		if !ok {
+			break
 		}
+		limitedComics[i] = comics[i]
 	}
 
 	// Вывод JSON в консоль
