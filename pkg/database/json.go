@@ -2,83 +2,103 @@ package database
 
 import (
 	"encoding/json"
-	"makar/stemmer/pkg/config"
-	"makar/stemmer/pkg/xkcd"
 
 	"os"
 )
 
-var configData *config.Config
+type Comics struct {
+	ID       int      `json:"-"`
+	Url      string   `json:"url"`
+	Keywords []string `json:"keywords"`
+}
 
-func Init(config *config.Config) error {
+type Database struct {
+	Entries  map[int]*Comics
+	FilePath string
+}
+
+func Init(FilePath string) (*Database, error) {
 
 	// Инициализация конфига. Создание файла БД, если его нет
 
-	configData = config
-
-	file, err := os.OpenFile(configData.DBFile, os.O_CREATE, 0666)
-
-	if err != nil {
-		return err
-	}
-
-	file.Close()
-
-	return nil
-
-}
-
-func AddComics(comics map[int]*xkcd.Comic) error {
-
-	// Считывание имеющихся комиксов.
-	existingComics, err := GetComics()
-
-	if err != nil {
-		return err
-	}
-
-	// Добавление новых комиксов к имеющимся
-
-	for id, comic := range comics {
-		existingComics[id] = comic
-	}
-
-	// Запись в БД
-	updatedData, err := json.MarshalIndent(existingComics, "", " ")
-	if err != nil {
-		return err
-	}
-
-	if err := os.WriteFile(configData.DBFile, updatedData, 0644); err != nil {
-		return err
-	}
-
-	return nil
-
-}
-
-func GetComics() (map[int]*xkcd.Comic, error) {
-
-	// Считывание всех комиксов из БД
-
-	var existingComics map[int]*xkcd.Comic
-
-	data, err := os.ReadFile(configData.DBFile)
+	file, err := os.OpenFile(FilePath, os.O_CREATE, 0666)
 
 	if err != nil {
 		return nil, err
 	}
 
+	defer file.Close()
+
+	newDB := &Database{
+		Entries:  make(map[int]*Comics),
+		FilePath: FilePath,
+	}
+
+	// Загрузка комиксов в базу данных
+	err = GetComics(newDB)
+	if err != nil {
+		return nil, err
+	}
+
+	return newDB, nil
+
+}
+
+func AddComics(db *Database, comics []*Comics) error {
+	// Добавление новых комиксов к имеющимся
+
+	for _, comic := range comics {
+		db.Entries[comic.ID] = comic
+	}
+
+	err := UpdateDB(db)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+
+}
+
+func UpdateDB(db *Database) error {
+	// Запись в JSON
+	updatedData, err := json.MarshalIndent(db.Entries, "", " ")
+	if err != nil {
+		return err
+	}
+
+	if err := os.WriteFile(db.FilePath, updatedData, 0644); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func GetComics(db *Database) error {
+
+	// Считывание всех комиксов из JSON
+
+	var existingComics map[int]*Comics
+
+	data, err := os.ReadFile(db.FilePath)
+
+	if err != nil {
+		return err
+	}
+
 	// Если комиксов нет, то вернуть пустой map
 	if len(data) == 0 {
-		existingComics = make(map[int]*xkcd.Comic)
+		existingComics = make(map[int]*Comics)
 	} else {
 		err = json.Unmarshal(data, &existingComics)
 
 		if err != nil {
-			return nil, err
+			return err
 		}
 	}
 
-	return existingComics, nil
+	db.Entries = existingComics
+
+	return nil
 }

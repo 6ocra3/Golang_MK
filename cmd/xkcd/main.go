@@ -10,7 +10,9 @@ import (
 	"math"
 )
 
-const base_batch_size = 50
+const base_batch_size = 10
+
+var app *requests.App
 
 func main() {
 
@@ -39,14 +41,14 @@ func main() {
 }
 
 func downloadScript() {
-	err := requests.DBDownloadComics(1, base_batch_size)
+	err := requests.DBDownloadComics(app, 1, base_batch_size)
 	if err != nil {
 		log.Fatal(err)
 	}
 }
 
 func printScript(limit int) {
-	err := requests.DBPrintComics(limit)
+	err := requests.DBPrintComics(app, limit)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -54,13 +56,20 @@ func printScript(limit int) {
 }
 
 func initAll(config *config.Config) {
-	err := database.Init(config)
+
+	db, err := database.Init(config.DBFile)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	err = xkcd.Init(config)
+	client, err := xkcd.Init(config.SourceURL)
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	app = &requests.App{
+		Db:     db,
+		Client: client,
+	}
+
 }

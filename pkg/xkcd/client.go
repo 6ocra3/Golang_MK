@@ -4,56 +4,44 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"makar/stemmer/pkg/config"
-	"makar/stemmer/pkg/words"
 	"net/http"
 	"time"
 )
 
 type RawComic struct {
+	ID         int
 	Url        string `json:"img"`
 	Transcript string `json:"transcript"`
 	Alt        string `json:"alt"`
 }
 
-type Comic struct {
-	Url      string
-	Keywords []string
+type Client struct {
+	SourceURL string
 }
 
-var client = http.Client{Timeout: 30 * time.Second}
-var configData *config.Config
+var httpClient = http.Client{Timeout: 30 * time.Second}
 
-func Init(config *config.Config) error {
-	configData = config
-	return nil
+func Init(SourceURL string) (*Client, error) {
+	client := &Client{
+		SourceURL: SourceURL,
+	}
+	return client, nil
 }
 
-func DownloadComics(start int, end int) (map[int]*Comic, error) {
+func DownloadComics(client *Client, start int, end int) ([]*RawComic, error) {
 	fmt.Printf("Start fetching %d %d\n", start, end)
-	comics := make(map[int]*Comic)
+	comics := make([]*RawComic, 0, end-start)
 	fmt.Print("Fetched: ")
 
-	comicsChan := make(chan *Comic, end-start+1)
-	errChan := make(chan error, end-start+1)
-
-	// Считывание комиксов по айти с помощью горутин
+	// Считывание комиксов по айди
 	for i := start; i <= end; i++ {
-		comic, err := DownloadComic(i)
+		comic, err := DownloadComic(client, i)
 		if err != nil {
 			return nil, err
 		}
-		comics[i] = comic
-	}
-
-	// Записывание каждого комикса в map
-	for i := start; i <= end; i++ {
-		select {
-		case comic := <-comicsChan:
-			comics[i] = comic
-		case err := <-errChan:
-			return nil, err
-		}
+		fmt.Printf("%d ", i)
+		comics = append(comics, comic)
+		// comics[i] = comic
 	}
 
 	fmt.Print("\n")
@@ -62,12 +50,11 @@ func DownloadComics(start int, end int) (map[int]*Comic, error) {
 
 }
 
-func DownloadComic(id int) (*Comic, error) {
+func DownloadComic(client *Client, id int) (*RawComic, error) {
 
 	// Считывание одного комикса
-
-	url := fmt.Sprintf("%s/%d/info.0.json", configData.SourceURL, id)
-	resp, err := client.Get(url)
+	url := fmt.Sprintf("%s/%d/info.0.json", client.SourceURL, id)
+	resp, err := httpClient.Get(url)
 
 	if err != nil {
 		return nil, err
@@ -80,19 +67,7 @@ func DownloadComic(id int) (*Comic, error) {
 	var comic RawComic
 
 	json.Unmarshal(body, &comic)
+	comic.ID = id
 
-	// Преобразование комикса в нужный формат. Стеминг, фильтр полей
-
-	description := comic.Transcript + comic.Alt
-
-	stemmedDescription, err := words.StemmString(description)
-
-	if err != nil {
-		fmt.Println(err)
-		return nil, err
-	}
-
-	processedComic := Comic{comic.Url, stemmedDescription}
-
-	return &processedComic, nil
+	return &comic, nil
 }
