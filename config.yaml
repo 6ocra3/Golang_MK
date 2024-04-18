@@ -1,4 +1,4 @@
 source_url: "https://xkcd.com"
 db_file: "database.json"
 # При большем количестве горутин, будет возникать ситуация, что некоторые горутины простаивают
-parallel: 20
+parallel: 50

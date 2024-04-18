@@ -24,16 +24,10 @@ func DBDownloadComics(app *App, ctx context.Context, parallel int) error {
 
 	// Подгрузка данных с сайта
 	comics := downloadComics(app, ctx, parallel)
-
-	// Обработка полученных данных
-	formatedComics, err := formatComics(comics)
-	if err != nil {
-		return nil
-	}
-	fmt.Print("Комиксы обработаны\n")
+	fmt.Print("\nКомиксы обработаны\n")
 
 	// Добавление данных в БД
-	err = database.AddComics(app.Db, formatedComics)
+	err := database.AddComics(app.Db, comics)
 	if err != nil {
 		return err
 	}
@@ -53,12 +47,12 @@ func nextId(db *database.Database) func() int {
 	}
 }
 
-func downloadComics(app *App, ctx context.Context, parallel int) *[]*xkcd.RawComic {
+func downloadComics(app *App, ctx context.Context, parallel int) *[]*database.Comics {
 	errCnt := 0
-	comics := make([]*xkcd.RawComic, 0)
+	comics := make([]*database.Comics, 0)
 	counter := nextId(app.Db)
 	tasks := make(chan int)
-	results := make(chan *xkcd.RawComic)
+	results := make(chan *database.Comics)
 	errors := make(chan MyError)
 	done := make(chan struct{})
 	var wg sync.WaitGroup
@@ -97,7 +91,7 @@ downloadLoop:
 	return &comics
 }
 
-func worker(wg *sync.WaitGroup, app *App, tasks <-chan int, results chan<- *xkcd.RawComic, errors chan<- MyError, done <-chan struct{}, ctx context.Context) {
+func worker(wg *sync.WaitGroup, app *App, tasks <-chan int, results chan<- *database.Comics, errors chan<- MyError, done <-chan struct{}, ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
@@ -115,11 +109,17 @@ func worker(wg *sync.WaitGroup, app *App, tasks <-chan int, results chan<- *xkcd
 				errors <- MyError{id, err}
 				continue
 			}
+
+			formatComic, err := formatComics(comic)
+			if err != nil {
+				errors <- MyError{id, err}
+				continue
+			}
 			select {
 			case <-done:
 				wg.Done()
 				return
-			case results <- comic:
+			case results <- formatComic:
 			}
 		}
 	}
@@ -149,23 +149,17 @@ func DBPrintComics(app *App, limit int) error {
 
 }
 
-func formatComics(comics *[]*xkcd.RawComic) ([]*database.Comics, error) {
-	fmt.Print("Начало преобразования")
+func formatComics(comic *xkcd.RawComic) (*database.Comics, error) {
 	// Преобразование комикса в нужный формат. Стеминг, фильтр полей
-	formatedComics := make([]*database.Comics, 0, len(*comics))
-	for _, comic := range *comics {
-		description := comic.Transcript + comic.Alt
+	description := comic.Transcript + comic.Alt
 
-		stemmedDescription, err := words.StemmString(description)
+	stemmedDescription, err := words.StemmString(description)
 
-		if err != nil {
-			fmt.Println(err)
-			return nil, err
-		}
-
-		formatComic := database.Comics{ID: comic.ID, Url: comic.Url, Keywords: stemmedDescription}
-		formatedComics = append(formatedComics, &formatComic)
-
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
 	}
-	return formatedComics, nil
+
+	formatComic := database.Comics{ID: comic.ID, Url: comic.Url, Keywords: stemmedDescription}
+	return &formatComic, nil
 }
