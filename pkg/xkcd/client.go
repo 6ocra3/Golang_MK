@@ -19,7 +19,9 @@ type Client struct {
 	SourceURL string
 }
 
-var httpClient = http.Client{Timeout: 30 * time.Second}
+var httpClient = http.Client{
+	Timeout: 5 * time.Second,
+}
 
 func Init(SourceURL string) (*Client, error) {
 	client := &Client{
@@ -40,7 +42,7 @@ func DownloadComic(client *Client, id int) (*RawComic, error) {
 			break
 		}
 
-		fmt.Printf("%d-error ", id)
+		//fmt.Printf("%d-error ", id)
 
 	}
 
@@ -48,7 +50,9 @@ func DownloadComic(client *Client, id int) (*RawComic, error) {
 		return nil, err
 	}
 
-	defer resp.Body.Close()
+	if resp != nil {
+		defer resp.Body.Close()
+	}
 
 	if resp.StatusCode != http.StatusOK && id != 404 {
 		return nil, fmt.Errorf("failed to fetch comic %d: %s", id, resp.Status)

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"log"
 	"makar/stemmer/pkg/config"
 	"makar/stemmer/pkg/database"
@@ -24,6 +25,12 @@ func main() {
 		cancelFunc()
 	}()
 
+	var input string
+	var isIndexSearch bool
+	flag.StringVar(&input, "s", "", "Флаг `-s` используется для ввода запроса")
+	flag.BoolVar(&isIndexSearch, "i", false, "Флаг `-i` используется для включения поиска по индекс файлу")
+	flag.Parse()
+
 	// Считывание конфига
 	const configPath = "config.yaml"
 	config, err := config.ReadConfig(configPath)
@@ -34,7 +41,13 @@ func main() {
 	// Создание БД, подгрузка конфига в пакеты
 	initAll(config)
 
-	err = requests.DBDownloadComics(app, ctx, config.Parallel)
+	// Подгрузка комиксов
+	err = requests.DBDownloadComics(app, ctx, config.Parallel, config.IndexFile)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = requests.DBFindComics(app, input, isIndexSearch, config.SearchLimit)
 	if err != nil {
 		log.Fatal(err)
 	}

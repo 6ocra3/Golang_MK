@@ -14,6 +14,7 @@ type Comics struct {
 
 type Database struct {
 	Entries  map[int]*Comics
+	Index    map[string][]int
 	FilePath string
 }
 

@@ -7,9 +7,11 @@ import (
 )
 
 type Config struct {
-	SourceURL string `yaml:"source_url"`
-	DBFile    string `yaml:"db_file"`
-	Parallel  int    `yaml:"parallel"`
+	SourceURL   string `yaml:"source_url"`
+	DBFile      string `yaml:"db_file"`
+	IndexFile   string `yaml:"index_file"`
+	Parallel    int    `yaml:"parallel"`
+	SearchLimit int    `yaml:"search_limit"`
 }
 
 func ReadConfig(filename string) (*Config, error) {

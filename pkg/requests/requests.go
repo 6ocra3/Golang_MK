@@ -2,25 +2,18 @@ package requests
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"makar/stemmer/pkg/database"
 	"makar/stemmer/pkg/words"
 	"makar/stemmer/pkg/xkcd"
-	"sync"
 )
-
-type MyError struct {
-	id  int
-	err error
-}
 
 type App struct {
 	Db     *database.Database
 	Client *xkcd.Client
 }
 
-func DBDownloadComics(app *App, ctx context.Context, parallel int) error {
+func DBDownloadComics(app *App, ctx context.Context, parallel int, indexFile string) error {
 
 	// Подгрузка данных с сайта
 	comics := downloadComics(app, ctx, parallel)
@@ -33,133 +26,44 @@ func DBDownloadComics(app *App, ctx context.Context, parallel int) error {
 	}
 	fmt.Print("Комиксы сохранены\n")
 
-	return nil
-}
-
-func nextId(db *database.Database) func() int {
-	cur := 1
-	return func() int {
-		for db.Entries[cur] != nil {
-			cur++
-		}
-		cur++
-		return cur - 1
-	}
-}
-
-func downloadComics(app *App, ctx context.Context, parallel int) *[]*database.Comics {
-	errCnt := 0
-	comics := make([]*database.Comics, 0)
-	counter := nextId(app.Db)
-	tasks := make(chan int)
-	results := make(chan *database.Comics)
-	errors := make(chan MyError)
-	done := make(chan struct{})
-	var wg sync.WaitGroup
-
-	for i := 0; i < parallel; i++ {
-		wg.Add(1)
-		go worker(&wg, app, tasks, results, errors, done, ctx)
-		tasks <- counter()
-
-	}
-
-downloadLoop:
-	for {
-		select {
-		case <-ctx.Done():
-			close(done)
-			break downloadLoop
-		case comic := <-results:
-			comics = append(comics, comic)
-			fmt.Printf("%d ", comic.ID)
-			tasks <- counter()
-		case err := <-errors:
-			fmt.Printf("Err-%d ", err.id)
-			errCnt++
-			if errCnt == parallel {
-				close(done)
-				break downloadLoop
-			}
-		}
-
-	}
-	close(tasks)
-	wg.Wait()
-	close(results)
-	close(errors)
-	return &comics
-}
-
-func worker(wg *sync.WaitGroup, app *App, tasks <-chan int, results chan<- *database.Comics, errors chan<- MyError, done <-chan struct{}, ctx context.Context) {
-	for {
-		select {
-		case <-ctx.Done():
-			wg.Done()
-			return
-		case <-done:
-			wg.Done()
-			return
-		case id, ok := <-tasks:
-			if !ok {
-				return
-			}
-			comic, err := xkcd.DownloadComic(app.Client, id)
-			if err != nil {
-				errors <- MyError{id, err}
-				continue
-			}
-
-			formatComic, err := formatComics(comic)
-			if err != nil {
-				errors <- MyError{id, err}
-				continue
-			}
-			select {
-			case <-done:
-				wg.Done()
-				return
-			case results <- formatComic:
-			}
-		}
-	}
-}
-
-func DBPrintComics(app *App, limit int) error {
-	// Формирование списка комиксов, с id меньше limit
-	limitedComics := make(map[int]*database.Comics)
-	for i := 1; i <= limit; i++ {
-		_, ok := app.Db.Entries[i]
-		if !ok {
-			break
-		}
-		limitedComics[i] = app.Db.Entries[i]
-	}
-
-	// Вывод JSON в консоль
-
-	jsonData, err := json.MarshalIndent(limitedComics, "", "    ")
+	err = database.LoadIndex(app.Db, indexFile)
 	if err != nil {
 		return err
 	}
-
-	fmt.Println(string(jsonData))
+	fmt.Print("Индекс построен\n")
 
 	return nil
-
 }
 
-func formatComics(comic *xkcd.RawComic) (*database.Comics, error) {
-	// Преобразование комикса в нужный формат. Стеминг, фильтр полей
-	description := comic.Transcript + comic.Alt
-
-	stemmedDescription, err := words.StemmString(description)
+func DBFindComics(app *App, request string, isIndexSearch bool, limit int) error {
+	// Обрабатываем запрос
+	stemRequest, err := words.StemmString(request)
 
 	if err != nil {
-		fmt.Println(err)
-		return nil, err
+		return nil
 	}
 
-	formatComic := database.Comics{ID: comic.ID, Url: comic.Url, Keywords: stemmedDescription}
-	return &formatComic, nil
+	// Получение map keyword -> [id1, id2, id3]
+	var searchResult map[string][]int
+	switch isIndexSearch {
+	case true:
+		searchResult = FindWithIndex(app, stemRequest)
+	case false:
+		searchResult = FindWithDB(app, stemRequest)
+	}
+
+	// Обработка map keyword -> [id1, id2, id3] и получение итогового списка id
+	processedResult := processResult(app, searchResult, limit)
+
+	// Выводим ссылки
+	if len(processedResult) == 0 {
+		fmt.Println("Ничего не найдено")
+		return nil
+	}
+
+	for i := range processedResult {
+		fmt.Println(app.Db.Entries[processedResult[i]].Url)
+	}
+
+	return nil
 }
