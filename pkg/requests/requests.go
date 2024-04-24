@@ -16,7 +16,7 @@ type App struct {
 func DBDownloadComics(app *App, ctx context.Context, parallel int, indexFile string) error {
 
 	// Подгрузка данных с сайта
-	comics := downloadComics(app, ctx, parallel)
+	comics := downloadComics(ctx, app, parallel)
 	fmt.Print("\nКомиксы обработаны\n")
 
 	// Добавление данных в БД

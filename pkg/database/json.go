@@ -45,10 +45,10 @@ func Init(FilePath string) (*Database, error) {
 
 }
 
-func AddComics(db *Database, comics *[]*Comics) error {
+func AddComics(db *Database, comics []*Comics) error {
 	// Добавление новых комиксов к имеющимся
 
-	for _, comic := range *comics {
+	for _, comic := range comics {
 		db.Entries[comic.ID] = comic
 	}
 

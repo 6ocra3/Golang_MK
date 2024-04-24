@@ -8,22 +8,14 @@ import (
 	"makar/stemmer/pkg/database"
 	"makar/stemmer/pkg/requests"
 	"makar/stemmer/pkg/xkcd"
-	"os"
 	"os/signal"
 	"syscall"
 )
 
-var app *requests.App
-
 func main() {
 
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-	ctx, cancelFunc := context.WithCancel(context.Background())
-	go func() {
-		<-sigs
-		cancelFunc()
-	}()
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
 
 	var input string
 	var isIndexSearch bool
@@ -39,7 +31,7 @@ func main() {
 	}
 
 	// Создание БД, подгрузка конфига в пакеты
-	initAll(config)
+	app := initAll(config)
 
 	// Подгрузка комиксов
 	err = requests.DBDownloadComics(app, ctx, config.Parallel, config.IndexFile)
@@ -53,7 +45,7 @@ func main() {
 	}
 }
 
-func initAll(config *config.Config) {
+func initAll(config *config.Config) *requests.App {
 
 	db, err := database.Init(config.DBFile)
 	if err != nil {
@@ -65,9 +57,11 @@ func initAll(config *config.Config) {
 		log.Fatal(err)
 	}
 
-	app = &requests.App{
+	app := &requests.App{
 		Db:     db,
 		Client: client,
 	}
+
+	return app
 
 }

@@ -55,6 +55,7 @@ func setup() *requests.App {
 }
 
 func BenchmarkFindComicsDB(b *testing.B) {
+	b.ResetTimer()
 	app := setup()
 	input := "find home"
 
@@ -67,6 +68,7 @@ func BenchmarkFindComicsDB(b *testing.B) {
 }
 
 func BenchmarkFindComicsIndex(b *testing.B) {
+	b.ResetTimer()
 	app := setup()
 	input := "find home"
 	for i := 0; i < b.N; i++ {

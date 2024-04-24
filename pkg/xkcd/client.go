@@ -3,7 +3,6 @@ package xkcd
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"time"
 )
@@ -12,6 +11,7 @@ type RawComic struct {
 	ID         int
 	Url        string `json:"img"`
 	Transcript string `json:"transcript"`
+	Title      string `json:"title"`
 	Alt        string `json:"alt"`
 }
 
@@ -50,19 +50,18 @@ func DownloadComic(client *Client, id int) (*RawComic, error) {
 		return nil, err
 	}
 
-	if resp != nil {
-		defer resp.Body.Close()
-	}
+	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK && id != 404 {
 		return nil, fmt.Errorf("failed to fetch comic %d: %s", id, resp.Status)
 	}
-
-	body, _ := io.ReadAll(resp.Body)
-
+	
 	var comic RawComic
 
-	json.Unmarshal(body, &comic)
+	if err := json.NewDecoder(resp.Body).Decode(&comic); err != nil {
+		return nil, err // Обработка ошибки декодирования
+	}
+
 	comic.ID = id
 
 	return &comic, nil
