@@ -1,7 +1,7 @@
 package requests
 
 import (
-	"encoding/json"
+	"context"
 	"fmt"
 	"makar/stemmer/pkg/database"
 	"makar/stemmer/pkg/words"
@@ -13,71 +13,57 @@ type App struct {
 	Client *xkcd.Client
 }
 
-func DBDownloadComics(app *App, start int, end int) error {
+func DBDownloadComics(app *App, ctx context.Context, parallel int, indexFile string) error {
 
 	// Подгрузка данных с сайта
-	comics, err := xkcd.DownloadComics(app.Client, start, end)
-	if err != nil {
-		return err
-	}
-	fmt.Print("Комиксы загружены\n")
-	// Обработка полученных данных
-	formatedComics, err := formatComics(comics)
-	if err != nil {
-		return nil
-	}
-	fmt.Print("Комиксы обработаны\n")
+	comics := downloadComics(ctx, app, parallel)
+	fmt.Print("\nКомиксы обработаны\n")
 
 	// Добавление данных в БД
-	err = database.AddComics(app.Db, formatedComics)
+	err := database.AddComics(app.Db, comics)
 	if err != nil {
 		return err
 	}
 	fmt.Print("Комиксы сохранены\n")
 
-	return nil
-}
-
-func DBPrintComics(app *App, limit int) error {
-	// Формирование списка комиксов, с id меньше limit
-	limitedComics := make(map[int]*database.Comics)
-	for i := 1; i <= limit; i++ {
-		_, ok := app.Db.Entries[i]
-		if !ok {
-			break
-		}
-		limitedComics[i] = app.Db.Entries[i]
-	}
-
-	// Вывод JSON в консоль
-
-	jsonData, err := json.MarshalIndent(limitedComics, "", "    ")
+	err = database.LoadIndex(app.Db, indexFile)
 	if err != nil {
 		return err
 	}
-
-	fmt.Println(string(jsonData))
+	fmt.Print("Индекс построен\n")
 
 	return nil
-
 }
 
-func formatComics(comics []*xkcd.RawComic) ([]*database.Comics, error) {
-	fmt.Print("Начало преобразования")
-	// Преобразование комикса в нужный формат. Стеминг, фильтр полей
-	formatedComics := make([]*database.Comics, 0, len(comics))
-	for _, comic := range comics {
-		description := comic.Transcript + comic.Alt
+func DBFindComics(app *App, request string, isIndexSearch bool, limit int) error {
+	// Обрабатываем запрос
+	stemRequest, err := words.StemmString(request)
 
-		stemmedDescription, err := words.StemmString(description)
-
-		if err != nil {
-			fmt.Println(err)
-			return nil, err
-		}
-
-		formatComic := database.Comics{ID: comic.ID, Url: comic.Url, Keywords: stemmedDescription}
-		formatedComics = append(formatedComics, &formatComic)
+	if err != nil {
+		return nil
 	}
-	return formatedComics, nil
+
+	// Получение map keyword -> [id1, id2, id3]
+	var searchResult map[string][]int
+	switch isIndexSearch {
+	case true:
+		searchResult = FindWithIndex(app, stemRequest)
+	case false:
+		searchResult = FindWithDB(app, stemRequest)
+	}
+
+	// Обработка map keyword -> [id1, id2, id3] и получение итогового списка id
+	processedResult := processResult(app, searchResult, limit)
+
+	// Выводим ссылки
+	if len(processedResult) == 0 {
+		fmt.Println("Ничего не найдено")
+		return nil
+	}
+
+	for i := range processedResult {
+		fmt.Println(app.Db.Entries[processedResult[i]].Url)
+	}
+
+	return nil
 }

@@ -7,8 +7,11 @@ import (
 )
 
 type Config struct {
-	SourceURL string `yaml:"source_url"`
-	DBFile    string `yaml:"db_file"`
+	SourceURL   string `yaml:"source_url"`
+	DBFile      string `yaml:"db_file"`
+	IndexFile   string `yaml:"index_file"`
+	Parallel    int    `yaml:"parallel"`
+	SearchLimit int    `yaml:"search_limit"`
 }
 
 func ReadConfig(filename string) (*Config, error) {
@@ -23,7 +26,6 @@ func ReadConfig(filename string) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	return config, nil
 
 }

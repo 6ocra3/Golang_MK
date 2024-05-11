@@ -1,2 +1,5 @@
 source_url: "https://xkcd.com"
 db_file: "database.json"
+index_file: "index.json"
+parallel: 50
+search_limit: 10

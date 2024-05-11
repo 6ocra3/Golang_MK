@@ -1,25 +1,26 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"log"
 	"makar/stemmer/pkg/config"
 	"makar/stemmer/pkg/database"
 	"makar/stemmer/pkg/requests"
 	"makar/stemmer/pkg/xkcd"
-	"math"
+	"os/signal"
+	"syscall"
 )
-
-const base_batch_size = 10
-
-var app *requests.App
 
 func main() {
 
-	// Считывание флагов
-	printFlag := flag.Bool("o", false, "Флаг для вывода скаченных комиксов")
-	limitFlag := flag.Int("n", math.MaxInt, "Флаг для установки лимита показываемых комиксов")
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
 
+	var input string
+	var isIndexSearch bool
+	flag.StringVar(&input, "s", "", "Флаг `-s` используется для ввода запроса")
+	flag.BoolVar(&isIndexSearch, "i", false, "Флаг `-i` используется для включения поиска по индекс файлу")
 	flag.Parse()
 
 	// Считывание конфига
@@ -30,32 +31,21 @@ func main() {
 	}
 
 	// Создание БД, подгрузка конфига в пакеты
-	initAll(config)
-	if *printFlag {
-		// Сценарий ./myapp -o
-		printScript(*limitFlag)
-	} else {
-		// Сценарий ./myapp
-		downloadScript()
-	}
-}
+	app := initAll(config)
 
-func downloadScript() {
-	err := requests.DBDownloadComics(app, 1, base_batch_size)
+	// Подгрузка комиксов
+	err = requests.DBDownloadComics(app, ctx, config.Parallel, config.IndexFile)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = requests.DBFindComics(app, input, isIndexSearch, config.SearchLimit)
 	if err != nil {
 		log.Fatal(err)
 	}
 }
 
-func printScript(limit int) {
-	err := requests.DBPrintComics(app, limit)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-}
-
-func initAll(config *config.Config) {
+func initAll(config *config.Config) *requests.App {
 
 	db, err := database.Init(config.DBFile)
 	if err != nil {
@@ -67,9 +57,11 @@ func initAll(config *config.Config) {
 		log.Fatal(err)
 	}
 
-	app = &requests.App{
+	app := &requests.App{
 		Db:     db,
 		Client: client,
 	}
+
+	return app
 
 }
