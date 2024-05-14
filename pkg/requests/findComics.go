@@ -3,41 +3,7 @@ package requests
 import (
 	"fmt"
 	"sort"
-	"sync"
 )
-
-func FindWithDB(app *App, stemRequest []string) map[string][]int {
-	fmt.Println("Поиск по базе данных")
-	result := make(map[string][]int)
-
-	// Составляем map keyword -> [id1, id2, id3]
-	var wg sync.WaitGroup
-	var mu sync.Mutex
-	wg.Add(len(stemRequest))
-	for _, word := range stemRequest {
-		go func() {
-			localIndex := make([]int, 0)
-			for id, _ := range app.Db.Entries {
-				keywords := app.Db.Entries[id].Keywords
-				for _, keyword := range keywords {
-					if keyword == word {
-						localIndex = append(localIndex, id)
-						break
-					}
-				}
-			}
-			mu.Lock()
-			result[word] = localIndex
-			mu.Unlock()
-			wg.Done()
-		}()
-	}
-
-	wg.Wait()
-
-	return result
-
-}
 
 func FindWithIndex(app *App, stemRequest []string) map[string][]int {
 	fmt.Println("Поиск по индекс файлу")

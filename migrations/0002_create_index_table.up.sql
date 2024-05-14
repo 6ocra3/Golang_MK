@@ -1,0 +1,4 @@
+CREATE TABLE IF NOT EXISTS index_table (
+    word VARCHAR(255) NOT NULL PRIMARY KEY,
+    ids JSON
+);

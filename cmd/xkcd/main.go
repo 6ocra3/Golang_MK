@@ -7,7 +7,8 @@ import (
 	"log"
 	adapters "makar/stemmer/adapters/http"
 	"makar/stemmer/pkg/config"
-	"makar/stemmer/pkg/database"
+	"makar/stemmer/pkg/database/json"
+	database2 "makar/stemmer/pkg/database/sqlite"
 	"makar/stemmer/pkg/requests"
 	"makar/stemmer/pkg/xkcd"
 	"net/http"
@@ -18,6 +19,10 @@ import (
 )
 
 func main() {
+	database2.InitSQLite("test")
+}
+
+func main2() {
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()

@@ -3,7 +3,7 @@ package requests
 import (
 	"context"
 	"fmt"
-	"makar/stemmer/pkg/database"
+	"makar/stemmer/pkg/database/json"
 	"makar/stemmer/pkg/words"
 	"makar/stemmer/pkg/xkcd"
 )
