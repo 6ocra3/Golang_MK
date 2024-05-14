@@ -9,7 +9,7 @@ func FindWithIndex(app *App, stemRequest []string) map[string][]int {
 	fmt.Println("Поиск по индекс файлу")
 	result := make(map[string][]int)
 	for _, word := range stemRequest {
-		result[word] = app.Db.Index[word]
+		result[word] = app.Db.GetIds(word)
 	}
 	return result
 }
@@ -35,7 +35,7 @@ func processResult(app *App, searchResult map[string][]int, limit int) []int {
 		if pairs[i][1] != pairs[j][1] {
 			return pairs[i][1] > pairs[j][1]
 		}
-		return len(app.Db.Entries[pairs[i][0]].Keywords) < len(app.Db.Entries[pairs[j][0]].Keywords)
+		return len(app.Db.GetComic(pairs[i][0]).Keywords) < len(app.Db.GetComic(pairs[j][0]).Keywords)
 	})
 
 	// Получаем список из 10 релевантных комиксов

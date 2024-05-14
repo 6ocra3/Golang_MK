@@ -20,7 +20,7 @@ type DatabaseSQL struct {
 	db *sqlx.DB
 }
 
-func InitSQLite(dsn1 string) (*DatabaseSQL, error) {
+func Init(dsn string) (*DatabaseSQL, error) {
 
 	databaseURL := "mysql://xkcd:xkcd@tcp(localhost:3306)/xkcd"
 	migrationsDir := "file://./migrations"
@@ -34,7 +34,6 @@ func InitSQLite(dsn1 string) (*DatabaseSQL, error) {
 		return nil, err
 	}
 
-	dsn := "xkcd:xkcd@tcp(localhost:3306)/xkcd"
 	db, err := sqlx.Open("mysql", dsn)
 	if err != nil {
 		return nil, err
@@ -44,7 +43,7 @@ func InitSQLite(dsn1 string) (*DatabaseSQL, error) {
 	return database, nil
 }
 
-func (db *DatabaseSQL) AddComics(comics []*database.Comics) error {
+func (db DatabaseSQL) AddComics(comics []*database.Comics) error {
 	tx, err := db.db.Begin()
 	if err != nil {
 		return err
@@ -76,7 +75,7 @@ func (db *DatabaseSQL) AddComics(comics []*database.Comics) error {
 	return nil
 }
 
-func (db *DatabaseSQL) GetComic(id int) *database.Comics {
+func (db DatabaseSQL) GetComic(id int) *database.Comics {
 	var comic database.Comics
 	var keywordsJSON []byte
 
@@ -93,4 +92,10 @@ func (db *DatabaseSQL) GetComic(id int) *database.Comics {
 	}
 
 	return &comic
+}
+
+func (db DatabaseSQL) CountComics() int {
+	var count int
+	_ = db.db.QueryRow("SELECT COUNT(*) FROM comics").Scan(&count)
+	return count
 }

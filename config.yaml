@@ -3,3 +3,4 @@ db_file: "database.json"
 index_file: "index.json"
 parallel: 50
 search_limit: 10
+dns: "xkcd:xkcd@tcp(localhost:3306)/xkcd"

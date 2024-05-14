@@ -3,7 +3,7 @@ package requests
 import (
 	"context"
 	"fmt"
-	"makar/stemmer/pkg/database/json"
+	"makar/stemmer/pkg/database"
 	"makar/stemmer/pkg/words"
 	"makar/stemmer/pkg/xkcd"
 	"sync"
@@ -14,10 +14,10 @@ type ParseError struct {
 	err error
 }
 
-func nextId(db *json.Database) func() int {
+func nextId(db database.Database) func() int {
 	cur := 1
 	return func() int {
-		for db.Entries[cur] != nil {
+		for db.GetComic(cur) != nil {
 			cur++
 		}
 		cur++
@@ -25,12 +25,12 @@ func nextId(db *json.Database) func() int {
 	}
 }
 
-func downloadComics(ctx context.Context, app *App, parallel int) []*json.Comics {
+func downloadComics(ctx context.Context, app *App, parallel int) []*database.Comics {
 	errCnt := 0
-	comics := make([]*json.Comics, 0)
+	comics := make([]*database.Comics, 0)
 	counter := nextId(app.Db)
 	tasks := make(chan int)
-	results := make(chan *json.Comics)
+	results := make(chan *database.Comics)
 	errors := make(chan ParseError)
 	done := make(chan struct{})
 	var wg sync.WaitGroup
@@ -70,7 +70,7 @@ downloadLoop:
 	return comics
 }
 
-func worker(wg *sync.WaitGroup, app *App, tasks <-chan int, results chan<- *json.Comics, errors chan<- ParseError, done <-chan struct{}, ctx context.Context) {
+func worker(wg *sync.WaitGroup, app *App, tasks <-chan int, results chan<- *database.Comics, errors chan<- ParseError, done <-chan struct{}, ctx context.Context) {
 	wg.Done()
 	for {
 		select {
@@ -102,7 +102,7 @@ func worker(wg *sync.WaitGroup, app *App, tasks <-chan int, results chan<- *json
 	}
 }
 
-func formatComics(comic *xkcd.RawComic) (*json.Comics, error) {
+func formatComics(comic *xkcd.RawComic) (*database.Comics, error) {
 	// Преобразование комикса в нужный формат. Стеминг, фильтр полей
 	description := comic.Transcript + comic.Alt + comic.Title
 
@@ -113,6 +113,6 @@ func formatComics(comic *xkcd.RawComic) (*json.Comics, error) {
 		return nil, err
 	}
 
-	formatComic := json.Comics{ID: comic.ID, Url: comic.Url, Keywords: stemmedDescription}
+	formatComic := database.Comics{ID: comic.ID, Url: comic.Url, Keywords: stemmedDescription}
 	return &formatComic, nil
 }

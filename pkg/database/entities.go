@@ -7,8 +7,9 @@ type Comics struct {
 }
 
 type Database interface {
-	AddComics([]Comics) error
+	AddComics([]*Comics) error
 	GetComic(int) *Comics
 	GetIds(string) []int
 	BuildIndex() error
+	CountComics() int
 }

@@ -7,6 +7,7 @@ import (
 	"log"
 	adapters "makar/stemmer/adapters/http"
 	"makar/stemmer/pkg/config"
+	"makar/stemmer/pkg/database"
 	"makar/stemmer/pkg/database/json"
 	"makar/stemmer/pkg/database/sqlite"
 	"makar/stemmer/pkg/requests"
@@ -18,9 +19,10 @@ import (
 	"time"
 )
 
-func main2() {
-	sqlite.InitSQLite("test")
-}
+//func main() {
+//	db, err := sqlite.InitSQLite("test")
+//	db.
+//}
 
 func main() {
 
@@ -28,7 +30,9 @@ func main() {
 	defer stop()
 
 	var port int
+	var dbType string
 	flag.IntVar(&port, "p", 8080, "Флаг `-p` используется для ввода порта")
+	flag.StringVar(&dbType, "db", "sqlite", "Введите тип бд: sqlite или json")
 	flag.Parse()
 
 	// Считывание конфига
@@ -39,7 +43,7 @@ func main() {
 	}
 
 	// Создание БД, подгрузка конфига в пакеты
-	app := initAll(config)
+	app := initAll(config, dbType)
 
 	err = requests.DBDownloadComics(app, ctx, config.Parallel, config.IndexFile)
 	if err != nil {
@@ -92,11 +96,22 @@ func main() {
 
 }
 
-func initAll(config *config.Config) *requests.App {
+func initAll(config *config.Config, dbType string) *requests.App {
 
-	db, err := json.Init(config.DBFile)
-	if err != nil {
-		log.Fatal(err)
+	var db database.Database
+	var err error
+
+	switch dbType {
+	case "json":
+		db, err = json.Init(config.DBFile, config.IndexFile)
+		if err != nil {
+			log.Fatal(err)
+		}
+	default:
+		db, err = sqlite.Init(config.Dns)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	client, err := xkcd.Init(config.SourceURL)

@@ -3,13 +3,13 @@ package requests
 import (
 	"context"
 	"fmt"
-	"makar/stemmer/pkg/database/json"
+	"makar/stemmer/pkg/database"
 	"makar/stemmer/pkg/words"
 	"makar/stemmer/pkg/xkcd"
 )
 
 type App struct {
-	Db     *json.Database
+	Db     database.Database
 	Client *xkcd.Client
 }
 
@@ -20,13 +20,13 @@ func DBDownloadComics(app *App, ctx context.Context, parallel int, indexFile str
 	fmt.Print("\nКомиксы обработаны\n")
 
 	// Добавление данных в БД
-	err := json.AddComics(app.Db, comics)
+	err := app.Db.AddComics(comics)
 	if err != nil {
 		return err
 	}
 	fmt.Print("Комиксы сохранены\n")
-
-	err = json.LoadIndex(app.Db, indexFile)
+	err = app.Db.BuildIndex()
+	//err = json.LoadIndex(app.Db, indexFile)
 	if err != nil {
 		return err
 	}
@@ -58,7 +58,7 @@ func DBFindComics(app *App, request string, limit int) (error, []string) {
 	findedComics := make([]string, len(processedResult))
 
 	for i := range processedResult {
-		findedComics[i] = app.Db.Entries[processedResult[i]].Url
+		findedComics[i] = app.Db.GetComic(processedResult[i]).Url
 	}
 
 	return nil, findedComics

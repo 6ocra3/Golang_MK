@@ -5,17 +5,17 @@ import (
 	"os"
 )
 
-func BuildIndex(db *Database, indexFile string) error {
-	indexData := makeIndex(db)
+func (db Database) BuildIndex() error {
+	indexData := db.makeIndex()
 	db.Index = indexData
-	err := saveIndex(indexData, indexFile)
+	err := db.saveIndex(indexData)
 	return err
 }
 
-func LoadIndex(db *Database, indexFile string) error {
-	indexData, err := loadIndex(indexFile)
+func (db Database) LoadIndex(indexFile string) error {
+	indexData, err := db.loadIndex()
 	if os.IsNotExist(err) {
-		err := BuildIndex(db, indexFile)
+		err := db.BuildIndex()
 		return err
 	}
 	if err != nil {
@@ -25,7 +25,7 @@ func LoadIndex(db *Database, indexFile string) error {
 	return nil
 }
 
-func makeIndex(db *Database) map[string][]int {
+func (db Database) makeIndex() map[string][]int {
 	// Создание индекса
 	indexData := make(map[string][]int)
 	for id := range db.Entries {
@@ -39,9 +39,9 @@ func makeIndex(db *Database) map[string][]int {
 	return indexData
 }
 
-func saveIndex(indexData map[string][]int, indexFile string) error {
+func (db Database) saveIndex(indexData map[string][]int) error {
 	// Сохранение данных в файл
-	file, err := os.Create(indexFile)
+	file, err := os.Create(db.IndexFile)
 	if err != nil {
 		return err
 	}
@@ -55,9 +55,9 @@ func saveIndex(indexData map[string][]int, indexFile string) error {
 	return nil
 }
 
-func loadIndex(indexFile string) (map[string][]int, error) {
+func (db Database) loadIndex() (map[string][]int, error) {
 	// Подгрузка данных из уже созданного индекса
-	file, err := os.Open(indexFile)
+	file, err := os.Open(db.IndexFile)
 	if err != nil {
 		return nil, err
 	}
@@ -70,4 +70,8 @@ func loadIndex(indexFile string) (map[string][]int, error) {
 	}
 
 	return indexData, nil
+}
+
+func (db Database) GetIds(word string) []int {
+	return db.Index[word]
 }

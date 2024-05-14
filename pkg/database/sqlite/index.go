@@ -5,11 +5,7 @@ import (
 	"makar/stemmer/pkg/database"
 )
 
-func (db *DatabaseSQL) LoadIndex() error {
-	return nil
-}
-
-func (db *DatabaseSQL) BuildIndex() error {
+func (db DatabaseSQL) BuildIndex() error {
 
 	rows, err := db.db.Query("SELECT id, url, keywords FROM comics")
 	if err != nil {
@@ -46,7 +42,7 @@ func (db *DatabaseSQL) BuildIndex() error {
 	return err
 }
 
-func (db *DatabaseSQL) saveIndex(indexData *map[string][]int) error {
+func (db DatabaseSQL) saveIndex(indexData *map[string][]int) error {
 	_, err := db.db.Exec("TRUNCATE TABLE index_table")
 	if err != nil {
 		return err
@@ -58,9 +54,8 @@ func (db *DatabaseSQL) saveIndex(indexData *map[string][]int) error {
 	}
 	defer tx.Rollback()
 
-	stmt, err := tx.Prepare("INSERT INTO index_table (word, ids) VALUES (?, ?)")
+	stmt, err := tx.Prepare("INSERT INTO index_table (word, ids) VALUES (?, ?) ON DUPLICATE KEY UPDATE ids = VALUES(ids);")
 	if err != nil {
-
 		return err
 	}
 	defer stmt.Close()
@@ -80,7 +75,7 @@ func (db *DatabaseSQL) saveIndex(indexData *map[string][]int) error {
 	return tx.Commit()
 }
 
-func (db *DatabaseSQL) GetIds(word string) []int {
+func (db DatabaseSQL) GetIds(word string) []int {
 	var idsJSON string
 	err := db.db.QueryRow("SELECT ids FROM index_table WHERE word = ?", word).Scan(&idsJSON)
 	if err != nil {

@@ -24,7 +24,7 @@ func DBDownloadComicsAdapter(app *requests.App, ctx context.Context, parallel in
 			return
 		}
 
-		prevTotal := len(app.Db.Entries)
+		prevTotal := app.Db.CountComics()
 
 		err := requests.DBDownloadComics(app, ctx, parallel, indexFile)
 		if err != nil {
@@ -32,8 +32,8 @@ func DBDownloadComicsAdapter(app *requests.App, ctx context.Context, parallel in
 			return
 		}
 
-		newComics := len(app.Db.Entries) - prevTotal
-		totalComics := len(app.Db.Entries)
+		newComics := app.Db.CountComics() - prevTotal
+		totalComics := app.Db.CountComics()
 
 		response := DBDownloadComicsResponse{
 			newComics, totalComics,
