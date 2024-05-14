@@ -19,11 +19,6 @@ import (
 	"time"
 )
 
-//func main() {
-//	db, err := sqlite.InitSQLite("test")
-//	db.
-//}
-
 func main() {
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)

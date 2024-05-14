@@ -26,7 +26,6 @@ func DBDownloadComics(app *App, ctx context.Context, parallel int, indexFile str
 	}
 	fmt.Print("Комиксы сохранены\n")
 	err = app.Db.BuildIndex()
-	//err = json.LoadIndex(app.Db, indexFile)
 	if err != nil {
 		return err
 	}
