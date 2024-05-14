@@ -9,7 +9,7 @@ import (
 )
 
 type App struct {
-	Db     *database.Database
+	Db     *json.Database
 	Client *xkcd.Client
 }
 
@@ -20,13 +20,13 @@ func DBDownloadComics(app *App, ctx context.Context, parallel int, indexFile str
 	fmt.Print("\nКомиксы обработаны\n")
 
 	// Добавление данных в БД
-	err := database.AddComics(app.Db, comics)
+	err := json.AddComics(app.Db, comics)
 	if err != nil {
 		return err
 	}
 	fmt.Print("Комиксы сохранены\n")
 
-	err = database.LoadIndex(app.Db, indexFile)
+	err = json.LoadIndex(app.Db, indexFile)
 	if err != nil {
 		return err
 	}

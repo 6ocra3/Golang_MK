@@ -5,11 +5,11 @@ import (
 	"makar/stemmer/pkg/database"
 )
 
-func (db *Database) LoadIndex() error {
+func (db *DatabaseSQL) LoadIndex() error {
 	return nil
 }
 
-func (db *Database) BuildIndex() error {
+func (db *DatabaseSQL) BuildIndex() error {
 
 	rows, err := db.db.Query("SELECT id, url, keywords FROM comics")
 	if err != nil {
@@ -46,7 +46,7 @@ func (db *Database) BuildIndex() error {
 	return err
 }
 
-func (db *Database) saveIndex(indexData *map[string][]int) error {
+func (db *DatabaseSQL) saveIndex(indexData *map[string][]int) error {
 	_, err := db.db.Exec("TRUNCATE TABLE index_table")
 	if err != nil {
 		return err
@@ -80,18 +80,18 @@ func (db *Database) saveIndex(indexData *map[string][]int) error {
 	return tx.Commit()
 }
 
-func (db *Database) GetIds(word string) ([]int, error) {
+func (db *DatabaseSQL) GetIds(word string) []int {
 	var idsJSON string
 	err := db.db.QueryRow("SELECT ids FROM index_table WHERE word = ?", word).Scan(&idsJSON)
 	if err != nil {
-		return nil, err
+		return nil
 	}
 
 	var ids []int
 	err = json.Unmarshal([]byte(idsJSON), &ids)
 	if err != nil {
-		return nil, err
+		return nil
 	}
 
-	return ids, nil
+	return ids
 }

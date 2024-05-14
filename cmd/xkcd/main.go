@@ -8,7 +8,7 @@ import (
 	adapters "makar/stemmer/adapters/http"
 	"makar/stemmer/pkg/config"
 	"makar/stemmer/pkg/database/json"
-	database2 "makar/stemmer/pkg/database/sqlite"
+	"makar/stemmer/pkg/database/sqlite"
 	"makar/stemmer/pkg/requests"
 	"makar/stemmer/pkg/xkcd"
 	"net/http"
@@ -18,11 +18,11 @@ import (
 	"time"
 )
 
-func main() {
-	database2.InitSQLite("test")
+func main2() {
+	sqlite.InitSQLite("test")
 }
 
-func main2() {
+func main() {
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
@@ -94,7 +94,7 @@ func main2() {
 
 func initAll(config *config.Config) *requests.App {
 
-	db, err := database.Init(config.DBFile)
+	db, err := json.Init(config.DBFile)
 	if err != nil {
 		log.Fatal(err)
 	}

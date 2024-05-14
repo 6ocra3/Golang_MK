@@ -16,11 +16,11 @@ type Index struct {
 	Ids  []int  `db:"ids"`
 }
 
-type Database struct {
+type DatabaseSQL struct {
 	db *sqlx.DB
 }
 
-func InitSQLite(dsn1 string) (*Database, error) {
+func InitSQLite(dsn1 string) (*DatabaseSQL, error) {
 
 	databaseURL := "mysql://xkcd:xkcd@tcp(localhost:3306)/xkcd"
 	migrationsDir := "file://./migrations"
@@ -40,11 +40,11 @@ func InitSQLite(dsn1 string) (*Database, error) {
 		return nil, err
 	}
 
-	database := &Database{db: db}
+	database := &DatabaseSQL{db: db}
 	return database, nil
 }
 
-func (db *Database) AddComics(comics []*database.Comics) error {
+func (db *DatabaseSQL) AddComics(comics []*database.Comics) error {
 	tx, err := db.db.Begin()
 	if err != nil {
 		return err
@@ -76,7 +76,7 @@ func (db *Database) AddComics(comics []*database.Comics) error {
 	return nil
 }
 
-func (db *Database) getComic(id int) *database.Comics {
+func (db *DatabaseSQL) GetComic(id int) *database.Comics {
 	var comic database.Comics
 	var keywordsJSON []byte
 
