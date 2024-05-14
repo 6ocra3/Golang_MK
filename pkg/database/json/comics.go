@@ -1,24 +1,20 @@
-package database
+package json
 
 import (
 	"encoding/json"
+	"makar/stemmer/pkg/database"
 
 	"os"
 )
 
-type Comics struct {
-	ID       int      `json:"-"`
-	Url      string   `json:"url"`
-	Keywords []string `json:"keywords"`
-}
-
 type Database struct {
-	Entries  map[int]*Comics
-	Index    map[string][]int
-	FilePath string
+	Entries   map[int]*database.Comics
+	Index     map[string][]int
+	FilePath  string
+	IndexFile string
 }
 
-func Init(FilePath string) (*Database, error) {
+func Init(FilePath string, IndexFile string) (*Database, error) {
 
 	// Инициализация конфига. Создание файла БД, если его нет
 
@@ -31,28 +27,31 @@ func Init(FilePath string) (*Database, error) {
 	defer file.Close()
 
 	newDB := &Database{
-		Entries:  make(map[int]*Comics),
-		FilePath: FilePath,
+		Entries:   make(map[int]*database.Comics),
+		FilePath:  FilePath,
+		IndexFile: IndexFile,
 	}
 
 	// Загрузка комиксов в базу данных
-	err = GetComics(newDB)
+	comics, err := newDB.GetComics()
 	if err != nil {
 		return nil, err
 	}
+
+	newDB.Entries = comics
 
 	return newDB, nil
 
 }
 
-func AddComics(db *Database, comics []*Comics) error {
+func (db Database) AddComics(comics []*database.Comics) error {
 	// Добавление новых комиксов к имеющимся
 
 	for _, comic := range comics {
 		db.Entries[comic.ID] = comic
 	}
 
-	err := UpdateDB(db)
+	err := db.UpdateDB()
 
 	if err != nil {
 		return err
@@ -62,7 +61,7 @@ func AddComics(db *Database, comics []*Comics) error {
 
 }
 
-func UpdateDB(db *Database) error {
+func (db Database) UpdateDB() error {
 	// Запись в JSON
 	updatedData, err := json.MarshalIndent(db.Entries, "", " ")
 	if err != nil {
@@ -76,30 +75,36 @@ func UpdateDB(db *Database) error {
 	return nil
 }
 
-func GetComics(db *Database) error {
+func (db *Database) GetComics() (map[int]*database.Comics, error) {
 
 	// Считывание всех комиксов из JSON
 
-	var existingComics map[int]*Comics
+	var existingComics map[int]*database.Comics
 
 	data, err := os.ReadFile(db.FilePath)
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Если комиксов нет, то вернуть пустой map
 	if len(data) == 0 {
-		existingComics = make(map[int]*Comics)
+		existingComics = make(map[int]*database.Comics)
 	} else {
 		err = json.Unmarshal(data, &existingComics)
 
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
-	db.Entries = existingComics
+	return existingComics, nil
+}
 
-	return nil
+func (db Database) GetComic(id int) *database.Comics {
+	return db.Entries[id]
+}
+
+func (db Database) CountComics() int {
+	return len(db.Entries)
 }

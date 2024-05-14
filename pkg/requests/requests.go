@@ -9,7 +9,7 @@ import (
 )
 
 type App struct {
-	Db     *database.Database
+	Db     database.Database
 	Client *xkcd.Client
 }
 
@@ -20,13 +20,12 @@ func DBDownloadComics(app *App, ctx context.Context, parallel int, indexFile str
 	fmt.Print("\nКомиксы обработаны\n")
 
 	// Добавление данных в БД
-	err := database.AddComics(app.Db, comics)
+	err := app.Db.AddComics(comics)
 	if err != nil {
 		return err
 	}
 	fmt.Print("Комиксы сохранены\n")
-
-	err = database.LoadIndex(app.Db, indexFile)
+	err = app.Db.BuildIndex()
 	if err != nil {
 		return err
 	}
@@ -35,35 +34,31 @@ func DBDownloadComics(app *App, ctx context.Context, parallel int, indexFile str
 	return nil
 }
 
-func DBFindComics(app *App, request string, isIndexSearch bool, limit int) error {
+func DBFindComics(app *App, request string, limit int) (error, []string) {
 	// Обрабатываем запрос
 	stemRequest, err := words.StemmString(request)
 
 	if err != nil {
-		return nil
+		return err, nil
 	}
 
 	// Получение map keyword -> [id1, id2, id3]
 	var searchResult map[string][]int
-	switch isIndexSearch {
-	case true:
-		searchResult = FindWithIndex(app, stemRequest)
-	case false:
-		searchResult = FindWithDB(app, stemRequest)
-	}
+	searchResult = FindWithIndex(app, stemRequest)
 
 	// Обработка map keyword -> [id1, id2, id3] и получение итогового списка id
 	processedResult := processResult(app, searchResult, limit)
 
 	// Выводим ссылки
 	if len(processedResult) == 0 {
-		fmt.Println("Ничего не найдено")
-		return nil
+		return nil, nil
 	}
+
+	findedComics := make([]string, len(processedResult))
 
 	for i := range processedResult {
-		fmt.Println(app.Db.Entries[processedResult[i]].Url)
+		findedComics[i] = app.Db.GetComic(processedResult[i]).Url
 	}
 
-	return nil
+	return nil, findedComics
 }

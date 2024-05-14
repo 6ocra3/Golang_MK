@@ -14,10 +14,10 @@ type ParseError struct {
 	err error
 }
 
-func nextId(db *database.Database) func() int {
+func nextId(db database.Database) func() int {
 	cur := 1
 	return func() int {
-		for db.Entries[cur] != nil {
+		for db.GetComic(cur) != nil {
 			cur++
 		}
 		cur++

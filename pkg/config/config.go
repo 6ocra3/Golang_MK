@@ -12,6 +12,7 @@ type Config struct {
 	IndexFile   string `yaml:"index_file"`
 	Parallel    int    `yaml:"parallel"`
 	SearchLimit int    `yaml:"search_limit"`
+	Dns         string `yaml:"dns"`
 }
 
 func ReadConfig(filename string) (*Config, error) {

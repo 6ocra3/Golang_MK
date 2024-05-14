@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"log"
-	"makar/stemmer/pkg/database"
+	"makar/stemmer/pkg/database/json"
 	"makar/stemmer/pkg/xkcd"
 	"os"
 	"os/signal"
@@ -31,7 +31,7 @@ func setup() *requests.App {
 		log.Fatal(err)
 	}
 
-	db, err := database.Init(cfg.DBFile)
+	db, err := json.Init(cfg.DBFile)
 	if err != nil {
 		log.Fatal(err)
 	}
